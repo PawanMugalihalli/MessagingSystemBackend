@@ -114,3 +114,10 @@ func Validate(c *gin.Context){
 	})
 }
 
+func Logout(c *gin.Context) {
+	// Invalidate the cookie by setting a past expiry
+	c.SetCookie("Authorization", "", -1, "", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+}
+
+
