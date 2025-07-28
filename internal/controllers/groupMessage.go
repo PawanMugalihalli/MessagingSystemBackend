@@ -115,7 +115,6 @@ func PromoteToAdmin(groupID uint, userID uint) error {
 	if !CanAddAdmin(groupID) {
 		return fmt.Errorf("group already has 2 admins")
 	}
-
 	admin := models.GroupMember{
 		UserID:   userID,
 		GroupID:  groupID,
@@ -177,7 +176,6 @@ func AddAdmin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, gin.H{"message": "User promoted to admin"})
 }
 
