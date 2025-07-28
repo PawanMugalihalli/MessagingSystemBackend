@@ -8,4 +8,5 @@ type DirectMessage struct {
 	ReceiverID uint `gorm:"index"`
 	Content    string
 	CreatedAt  time.Time
+	UpdatedAt time.Time
 }

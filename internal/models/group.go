@@ -24,4 +24,5 @@ type GroupMessage struct {
 	SenderID  uint
 	Content   string `gorm:"not null"`
 	CreatedAt time.Time
+	UpdatedAt time.Time
 }
