@@ -46,3 +46,19 @@ func SendDirectMessage(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Message sent"})
 }
+
+
+func GetDirectMessage(c *gin.Context) {
+	msgID := c.Param("id")
+	var msg models.DirectMessage
+
+	if err := initializers.DB.First(&msg, msgID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+	"id": msg.ID,
+	"content": msg.Content,
+	"updated_at": msg.UpdatedAt.UTC(), // 👈 ensures UTC
+    })
+}

@@ -245,3 +245,19 @@ func AddGroupMember(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "User added to group"})
 }
+
+func GetGroupMessage(c *gin.Context) {
+	msgID := c.Param("id")
+	var msg models.GroupMessage
+
+	if err := initializers.DB.First(&msg, msgID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
+		return
+	}
+	fmt.Println(msg.UpdatedAt)
+	c.JSON(http.StatusOK, gin.H{
+	"id": msg.ID,
+	"content": msg.Content,
+	"updated_at": msg.UpdatedAt.UTC(), // 👈 ensures UTC
+    })
+}
