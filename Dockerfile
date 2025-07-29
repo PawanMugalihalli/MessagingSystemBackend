@@ -1,4 +1,3 @@
-# Use official Go image
 FROM golang:1.24.5-alpine
 
 # Set working directory
