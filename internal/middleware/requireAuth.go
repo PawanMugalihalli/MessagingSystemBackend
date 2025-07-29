@@ -4,7 +4,6 @@ import (
 	"MessagingSystemBackend/internal/initializers"
 	"MessagingSystemBackend/internal/models"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -19,40 +18,41 @@ func RequireAuth(c *gin.Context) {
 	// Get the cookie off req
 	tokenString, err := c.Cookie("Authorization")
 	if err != nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization cookie missing"})
+		return
 	}
-	// Decode/validate it
 
-	// Parse takes the token string and a function for looking up the key. The latter is especially
+	// Decode/validate it
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
 		return []byte(os.Getenv("SECRET")), nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+
 	if err != nil {
-		log.Fatal(err)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		return
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		// Check the exp
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		// Check expiry
 		if float64(time.Now().Unix()) > claims["exp"].(float64) {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
+			return
 		}
-		// Find the user with token sub
+
+		// Find user from DB
 		var user models.User
 		initializers.DB.First(&user, claims["sub"])
 
 		if user.Id == 0 {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			return
 		}
 
-		// Attach to req
+		// Attach user to context
 		c.Set("user", user)
 
-		//Continue
 		c.Next()
-		fmt.Println(claims["foo"], claims["nbf"])
 	} else {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid claims"})
 	}
-
 }
