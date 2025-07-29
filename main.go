@@ -25,29 +25,26 @@ func main() {
 	// Direct message endpoint
 	dmRoutes := r.Group("/dm")
 	dmRoutes.Use(middleware.RequireAuth)
-	dmRoutes.POST(":username", controllers.SendDirectMessage)
-	dmRoutes.GET(":id",controllers.GetDirectMessage)
+	dmRoutes.POST(":id", controllers.SendDirectMessage)
+	dmRoutes.GET(":id", controllers.GetDirectMessage)
 
 	groupRoutes := r.Group("/groups")
 	groupRoutes.Use(middleware.RequireAuth)
 	groupRoutes.POST("/create", controllers.CreateGroup)
-	groupRoutes.POST("/:name/message", controllers.SendGroupMessage)
-	groupRoutes.POST("/:name/add-member", controllers.AddGroupMember)
-	groupRoutes.POST("/:name/add-admin", controllers.AddAdmin)
+	groupRoutes.POST("/:id/message", controllers.SendGroupMessage)
+	groupRoutes.POST("/:id/add-member", controllers.AddGroupMember)
+	groupRoutes.POST("/:id/add-admin", controllers.AddAdmin)
 	groupRoutes.GET("/:id/summary", controllers.SummarizeGroupMessages)
-	groupRoutes.GET("/:id",controllers.GetGroupMessage)
+	groupRoutes.GET("/:id", controllers.GetGroupMessage)
 
 	viewRoutes := r.Group("/view")
 	viewRoutes.Use(middleware.RequireAuth)
 	viewRoutes.GET("/dms", controllers.ViewDMPreviews)
 	viewRoutes.GET("/groups", controllers.ViewGroupPreviews)
-	viewRoutes.GET("/chat/:type/:name", controllers.ViewChatHistory)
-
+	viewRoutes.GET("/chat/:type/:id", controllers.ViewChatHistory)
 
 	groupRoutes.PUT("/message/:id", controllers.EditGroupMessage)
 	dmRoutes.PUT("/message/:id", controllers.EditDirectMessage)
-
-
 
 	r.Run()
 }
