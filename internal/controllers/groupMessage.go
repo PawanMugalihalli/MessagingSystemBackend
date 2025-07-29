@@ -5,6 +5,7 @@ import (
 	"MessagingSystemBackend/internal/models"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -47,20 +48,26 @@ func CreateGroup(c *gin.Context) {
 }
 
 func SendGroupMessage(c *gin.Context) {
-	groupName := c.Param("name")
-	if groupName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid group name"})
+	groupIDParam := c.Param("id")
+	if groupIDParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid group ID"})
+		return
+	}
+
+	groupID, err := strconv.Atoi(groupIDParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Group ID must be a number"})
 		return
 	}
 
 	var group models.Group
-	if err := initializers.DB.Where("name = ?", groupName).First(&group).Error; err != nil {
+	if err := initializers.DB.First(&group, groupID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Group not found"})
 		return
 	}
 
 	var body struct {
-		Content string
+		Content string `json:"content"`
 	}
 	if err := c.Bind(&body); err != nil || body.Content == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid message"})
@@ -133,14 +140,20 @@ func IsGroupAdmin(groupID uint, userID uint) bool {
 }
 
 func AddAdmin(c *gin.Context) {
-	groupName := c.Param("name")
-	if groupName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing group name"})
+	groupIDParam := c.Param("id")
+	if groupIDParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing group ID"})
+		return
+	}
+
+	groupID, err := strconv.Atoi(groupIDParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid group ID"})
 		return
 	}
 
 	var group models.Group
-	if err := initializers.DB.Where("name = ?", groupName).First(&group).Error; err != nil {
+	if err := initializers.DB.First(&group, groupID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Group not found"})
 		return
 	}
@@ -151,6 +164,7 @@ func AddAdmin(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Only an admin can promote members"})
 		return
 	}
+
 	var body struct {
 		Username string `json:"username"`
 	}
@@ -158,11 +172,13 @@ func AddAdmin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Username required"})
 		return
 	}
+
 	var targetUser models.User
 	if err := initializers.DB.Where("username = ?", body.Username).First(&targetUser).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
+
 	if IsGroupAdmin(group.ID, targetUser.Id) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User is already an admin"})
 		return
@@ -172,26 +188,32 @@ func AddAdmin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Group already has 2 admins"})
 		return
 	}
+
 	if err := PromoteToAdmin(group.ID, targetUser.Id); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "User promoted to admin"})
 }
 
 func AddGroupMember(c *gin.Context) {
-	groupName := c.Param("name")
-	if groupName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing group name"})
+	// Take groupID from URL param and convert it to uint
+	groupIDParam := c.Param("id")
+	groupID, err := strconv.ParseUint(groupIDParam, 10, 64)
+	if err != nil || groupID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid group ID"})
 		return
 	}
 
+	// Find the group by ID
 	var group models.Group
-	if err := initializers.DB.Where("name = ?", groupName).First(&group).Error; err != nil {
+	if err := initializers.DB.First(&group, groupID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Group not found"})
 		return
 	}
 
+	// Get the current user (assumed to be set in middleware)
 	currentUser := c.MustGet("user").(models.User)
 
 	// Check if current user is an admin of the group
@@ -200,11 +222,13 @@ func AddGroupMember(c *gin.Context) {
 		return
 	}
 
+	// Check member limit
 	if !CanAddGroupMember(group.ID) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Group already has 25 members"})
 		return
 	}
 
+	// Read request body
 	var body struct {
 		Username string `json:"username"`
 		IsAdmin  bool   `json:"is_admin"`
@@ -214,13 +238,14 @@ func AddGroupMember(c *gin.Context) {
 		return
 	}
 
+	// Find the user to add
 	var user models.User
 	if err := initializers.DB.Where("username = ?", body.Username).First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User does not exist"})
 		return
 	}
 
-	// Check if already a member
+	// Check if user is already a member
 	var existing models.GroupMember
 	initializers.DB.Where("group_id = ? AND user_id = ?", group.ID, user.Id).First(&existing)
 	if existing.ID != 0 {
@@ -228,6 +253,7 @@ func AddGroupMember(c *gin.Context) {
 		return
 	}
 
+	// Add member as admin or regular member
 	if body.IsAdmin {
 		if err := PromoteToAdmin(group.ID, user.Id); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -256,8 +282,8 @@ func GetGroupMessage(c *gin.Context) {
 	}
 	fmt.Println(msg.UpdatedAt)
 	c.JSON(http.StatusOK, gin.H{
-	"id": msg.ID,
-	"content": msg.Content,
-	"updated_at": msg.UpdatedAt.UTC(), // 👈 ensures UTC
-    })
+		"id":         msg.ID,
+		"content":    msg.Content,
+		"updated_at": msg.UpdatedAt.UTC(), // 👈 ensures UTC
+	})
 }

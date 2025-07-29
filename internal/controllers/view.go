@@ -4,6 +4,7 @@ import (
 	"MessagingSystemBackend/internal/initializers"
 	"MessagingSystemBackend/internal/models"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -62,11 +63,17 @@ func ViewGroupPreviews(c *gin.Context) {
 func ViewChatHistory(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	chatType := c.Param("type")
-	identifier := c.Param("name") // now uses :name in route instead of :id
+	idParam := c.Param("id") // expecting numeric ID
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
 
 	if chatType == "dm" {
 		var partner models.User
-		if err := initializers.DB.Where("username = ?", identifier).First(&partner).Error; err != nil {
+		if err := initializers.DB.First(&partner, id).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
@@ -83,7 +90,7 @@ func ViewChatHistory(c *gin.Context) {
 		return
 	} else if chatType == "group" {
 		var group models.Group
-		if err := initializers.DB.Where("name = ?", identifier).First(&group).Error; err != nil {
+		if err := initializers.DB.First(&group, id).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Group not found"})
 			return
 		}

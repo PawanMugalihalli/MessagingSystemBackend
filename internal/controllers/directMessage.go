@@ -4,20 +4,27 @@ import (
 	"MessagingSystemBackend/internal/initializers"
 	"MessagingSystemBackend/internal/models"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 func SendDirectMessage(c *gin.Context) {
-	receiverUsername := c.Param("username")
-	if receiverUsername == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Receiver username required"})
+	receiverIDStr := c.Param("id")
+	if receiverIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Receiver ID required"})
+		return
+	}
+
+	receiverID, err := strconv.Atoi(receiverIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid receiver ID"})
 		return
 	}
 
 	var receiver models.User
-	if err := initializers.DB.Where("username = ?", receiverUsername).First(&receiver).Error; err != nil {
+	if err := initializers.DB.First(&receiver, receiverID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Receiver not found"})
 		return
 	}
@@ -47,7 +54,6 @@ func SendDirectMessage(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Message sent"})
 }
 
-
 func GetDirectMessage(c *gin.Context) {
 	msgID := c.Param("id")
 	var msg models.DirectMessage
@@ -57,8 +63,8 @@ func GetDirectMessage(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-	"id": msg.ID,
-	"content": msg.Content,
-	"updated_at": msg.UpdatedAt.UTC(), // 👈 ensures UTC
-    })
+		"id":         msg.ID,
+		"content":    msg.Content,
+		"updated_at": msg.UpdatedAt.UTC(), // 👈 ensures UTC
+	})
 }
