@@ -20,7 +20,7 @@ A secure, real-time messaging backend built with Go (Gin). Supports user auth, D
 
 ### 1. Clone the repository
 
-git clone https://github.com/your-username/MessagingSystemBackend.git  
+git clone https://github.com/PawanMugalihalli/MessagingSystemBackend.git  
 cd MessagingSystemBackend
 
 ### 2. Set up .env file
