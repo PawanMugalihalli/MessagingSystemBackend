@@ -38,7 +38,7 @@ func main() {
 	groupRoutes.POST("/:id/add-member", controllers.AddGroupMember)     // Add a new member to a group
 	groupRoutes.POST("/:id/add-admin", controllers.AddAdmin)            // Promote a member to group admin
 	groupRoutes.GET("/:id/summary", controllers.SummarizeGroupMessages) // Summarize group chat using NLP
-	groupRoutes.GET("/:id", controllers.GetGroupMessage)                // Retrieve all messages from a group
+	groupRoutes.GET("/:id", controllers.GetGroupMessage)                // Retrieve a message from a group
 
 	// Routes for viewing message previews and chat history
 	viewRoutes := r.Group("/view")
