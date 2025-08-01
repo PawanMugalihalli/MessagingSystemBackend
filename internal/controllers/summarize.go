@@ -95,7 +95,7 @@ func SummarizeGroupMessages(c *gin.Context) {
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+os.Getenv("GROQ_API_KEY"))
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("LLM_API_KEY"))
 
 	// Make API request
 	client := &http.Client{}

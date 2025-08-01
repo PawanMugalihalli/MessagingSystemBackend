@@ -3,12 +3,14 @@ package controllers
 import (
 	"MessagingSystemBackend/internal/initializers"
 	"MessagingSystemBackend/internal/models"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // CreateGroup creates a new group with the current user as the creator.
@@ -127,14 +129,30 @@ func CanAddAdmin(groupID uint) bool {
 
 // PromoteToAdmin promotes a user to admin if allowed.
 func PromoteToAdmin(groupID uint, userID uint) error {
-	// SQL: SELECT * FROM group_members WHERE group_id = ? AND user_id = ?;
 	var member models.GroupMember
+
 	err := initializers.DB.
 		Where("group_id = ? AND user_id = ?", groupID, userID).
 		First(&member).Error
 
 	if err != nil {
-		return fmt.Errorf("user must be a group member to be promoted")
+		// If not found, add user as admin if max admin count is not reached
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if !CanAddAdmin(groupID) {
+				return fmt.Errorf("group already has 2 admins")
+			}
+
+			newMember := models.GroupMember{
+				GroupID: groupID,
+				UserID:  userID,
+				IsAdmin: true,
+			}
+
+			return initializers.DB.Create(&newMember).Error
+		}
+
+		// Some other DB error
+		return fmt.Errorf("error checking membership: %v", err)
 	}
 
 	if member.IsAdmin {
@@ -146,6 +164,7 @@ func PromoteToAdmin(groupID uint, userID uint) error {
 		return fmt.Errorf("group already has 2 admins")
 	}
 
+	// Promote existing member to admin
 	member.IsAdmin = true
 	return initializers.DB.Save(&member).Error
 }
