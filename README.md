@@ -27,12 +27,13 @@ cd MessagingSystemBackend
 
 Create a `.env` file:
 
-PORT=3000  
-DB_HOST=localhost  
+PORT=3000    
 DB_USER=your_db_user  
 DB_PASSWORD=your_db_password  
-DB_NAME=messaging_db  
-JWT_SECRET=your_jwt_secret  
+DB_NAME=your_db_name 
+JWT_SECRET=your_jwt_secret
+LLM_API_KEY=your_llm_api_key
+DB=postgres://your_db_user:your_db_password@db:5432/your_db_name
 
 ### 3. Run with Docker
 
